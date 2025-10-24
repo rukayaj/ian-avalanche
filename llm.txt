@@ -1,0 +1,35 @@
+I want to do OCR on the attached pdf, which contains weather forecast data that I want to extract and turn into a spreadsheet. I will give page-by-page instructions:
+
+Page 1: consists of three text boxes. The first is titled "24 hour avalanche advice..." and contains dates and times. The second is titled "General situation...", the third is titled "Outlook.." I want to extract all text in the three textboxes - not the headings, but the text responses below those in the boxes.
+
+Page 2-8: each page has exactly the same structure, with each page giving the forecast for a different area.
+1) There is a text block near the top of the page that gives the forecaster's general opinion of the model-based forecasts. Extract this in its entirety. Then there are 3 graphs:
+2) The first graph is the wind forecast graph. It shows wind data over a 24-hour period, from 18:00 to 17:00 the next day.
+It contains:
+- A title with the location and altitude (not needed)
+- A pink line for wind gust (mph)
+- A blue line for wind speed (mph)
+- Wind direction above each hour (text: N, S, SW, etc)
+You should extract the wind speed, wind gust, and wind direction. One row per hour for each of these variables: wind gust at 18h, 19h, 20h, ..., 17h; wind speed at 18h, 19h, 20h, ..., 17h, wind direction at 18h, 19h, 20h, ..., 17h.
+3) The next graph on each page is the precipitation forecast graph. It shows rain and snow data over a 24-hour period, from 18:00 to 17:00 the next day.
+It contains:
+- A blue bar for rainfall (mm)
+- A white bar for snowfall (cm)
+- Precipitation type above each hour (text)
+- A title with the location and altitude (not needed)
+You should extract the rainfall, snowfall, and precipitation type. One row per hour for each of these variables. There will be rows for: rain fall at 18h, 19h, 20h, ..., 17h; snow fall at 18h, 19h, 20h, ..., 17h, precipitation condition at at 18h, 19h, 20h, ..., 17h. If there is no bar, then the value should be 0 (no rain/snow).
+3) The last graph on each page is the temperature graph. It shows data over a 24-hour period from 18:00 to 17:00 the next day.
+It contains:
+- A blue line for air temperature (read from the left-hand axis, in degrees Celsius)
+- A pink line for freezing level (read from the right-hand axis, in metres)
+- A yellow line for wet bulb freezing level (right-hand axis, metres)
+- A cyan line for station altitude (right-hand axis, metres)
+- A title with the location and altitude (not needed)
+You should extract the air temperature, freezing level, wet bulb freezing level, and altitude. One row per hour for each of these variables. There will be multiple rows for: air temperature at 18h, 19h, 20h, ..., 17h; freezing level altitude at 18h, 19h, 20h, ..., 17h, wet bulb freezing level altitude at 18h, 19h, 20h, ..., 17h, station altitude at 18h, 19h, 20h, ..., 17h. Again, note that air temperature should be read off the left-hand axis ("Degree (celcius)"). All other three variables should be read off the right-hand axis ("Height (metres)").
+4) No data from page 9 is needed.
+
+I have many documents of precisely this form. Let's try it out with the one pdf first and see how it looks.
+
+Produce a csv file. There should be column headers something like: 'Measurement', 'MeasurementType','Time', 'Location', and any other column headings you think we should have.
+
+Before starting the task, tell me if you require further information.

@@ -1,0 +1,32 @@
+SourceFile,Page,Location,Section,Measurement,MeasurementType,Units,ForecastWindowStartLocal,HourLabel,HourIndex,TimestampLocal,ValueNumeric,ValueText,Notes
+Scottish Avalanche Information Service-5.pdf,1,,FrontPage,Narrative,AvalancheAdvice,,,,,,,,Sample schema row for front page text
+Scottish Avalanche Information Service-5.pdf,1,,FrontPage,Narrative,GeneralSituation,,,,,,,,Sample schema row for front page text
+Scottish Avalanche Information Service-5.pdf,1,,FrontPage,Narrative,Outlook,,,,,,,,Sample schema row for front page text
+
+Scottish Avalanche Information Service-5.pdf,2,Cairngorms,Narrative,Narrative,ForecasterOpinion,,,,,,,,Sample schema row for per-area narrative
+
+Scottish Avalanche Information Service-5.pdf,2,Cairngorms,Wind,Wind,Speed,mph,2025-04-23 18:00,18,0,2025-04-23 18:00,22,,sample
+Scottish Avalanche Information Service-5.pdf,2,Cairngorms,Wind,Wind,Gust,mph,2025-04-23 18:00,18,0,2025-04-23 18:00,35,,sample
+Scottish Avalanche Information Service-5.pdf,2,Cairngorms,Wind,Wind,Direction,,2025-04-23 18:00,18,0,2025-04-23 18:00,,WSW,sample
+Scottish Avalanche Information Service-5.pdf,2,Cairngorms,Wind,Wind,Speed,mph,2025-04-23 18:00,19,1,2025-04-23 19:00,20,,sample
+Scottish Avalanche Information Service-5.pdf,2,Cairngorms,Wind,Wind,Gust,mph,2025-04-23 18:00,19,1,2025-04-23 19:00,32,,sample
+Scottish Avalanche Information Service-5.pdf,2,Cairngorms,Wind,Wind,Direction,,2025-04-23 18:00,19,1,2025-04-23 19:00,,W,sample
+Scottish Avalanche Information Service-5.pdf,2,Cairngorms,Wind,Wind,Speed,mph,2025-04-23 18:00,20,2,2025-04-23 20:00,18,,sample
+Scottish Avalanche Information Service-5.pdf,2,Cairngorms,Wind,Wind,Gust,mph,2025-04-23 18:00,20,2,2025-04-23 20:00,28,,sample
+Scottish Avalanche Information Service-5.pdf,2,Cairngorms,Wind,Wind,Direction,,2025-04-23 18:00,20,2,2025-04-23 20:00,,WNW,sample
+
+Scottish Avalanche Information Service-5.pdf,2,Cairngorms,Precip,Precipitation,Rain,mm,2025-04-23 18:00,18,0,2025-04-23 18:00,0.4,,sample
+Scottish Avalanche Information Service-5.pdf,2,Cairngorms,Precip,Precipitation,Snow,cm,2025-04-23 18:00,18,0,2025-04-23 18:00,0,,sample
+Scottish Avalanche Information Service-5.pdf,2,Cairngorms,Precip,Precipitation,Type,,2025-04-23 18:00,18,0,2025-04-23 18:00,,Rain,sample
+Scottish Avalanche Information Service-5.pdf,2,Cairngorms,Precip,Precipitation,Rain,mm,2025-04-23 18:00,19,1,2025-04-23 19:00,0,,sample
+Scottish Avalanche Information Service-5.pdf,2,Cairngorms,Precip,Precipitation,Snow,cm,2025-04-23 18:00,19,1,2025-04-23 19:00,0,,sample
+Scottish Avalanche Information Service-5.pdf,2,Cairngorms,Precip,Precipitation,Type,,2025-04-23 18:00,19,1,2025-04-23 19:00,,None,sample
+
+Scottish Avalanche Information Service-5.pdf,2,Cairngorms,Temperature,Temperature,AirTemp_C,degC,2025-04-23 18:00,18,0,2025-04-23 18:00,-2,,sample
+Scottish Avalanche Information Service-5.pdf,2,Cairngorms,Temperature,Temperature,AirTemp_C,degC,2025-04-23 18:00,19,1,2025-04-23 19:00,-3,,sample
+Scottish Avalanche Information Service-5.pdf,2,Cairngorms,Temperature,FreezingLevel,FreezingLevel_m,m,2025-04-23 18:00,18,0,2025-04-23 18:00,600,,sample
+Scottish Avalanche Information Service-5.pdf,2,Cairngorms,Temperature,FreezingLevel,FreezingLevel_m,m,2025-04-23 18:00,19,1,2025-04-23 19:00,550,,sample
+Scottish Avalanche Information Service-5.pdf,2,Cairngorms,Temperature,WetBulbFreezingLevel,WBFL_m,m,2025-04-23 18:00,18,0,2025-04-23 18:00,500,,sample
+Scottish Avalanche Information Service-5.pdf,2,Cairngorms,Temperature,WetBulbFreezingLevel,WBFL_m,m,2025-04-23 18:00,19,1,2025-04-23 19:00,480,,sample
+Scottish Avalanche Information Service-5.pdf,2,Cairngorms,Temperature,StationAltitude,StationAltitude_m,m,2025-04-23 18:00,18,0,2025-04-23 18:00,1100,,sample
+Scottish Avalanche Information Service-5.pdf,2,Cairngorms,Temperature,StationAltitude,StationAltitude_m,m,2025-04-23 18:00,19,1,2025-04-23 19:00,1100,,sample

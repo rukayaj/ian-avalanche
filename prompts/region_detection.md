@@ -1,0 +1,2 @@
+You are given a full page image from an avalanche forecast PDF. Identify if the page is an area forecast page with three graphs (wind, precipitation, temperature) spanning 24 hours (18:00 → 17:00 next day). If yes, classify page_type as "area_graphs" and return three normalized bounding boxes [x,y,w,h] for the graphs along with their kinds. Also return the location name if present in titles near the top of each graph. Bounding boxes should tightly surround the plot and its legend/title.
+

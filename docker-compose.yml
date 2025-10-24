@@ -1,0 +1,11 @@
+services:
+  extractor:
+    build: .
+    env_file:
+      - .env.local
+    environment:
+      MODEL_NAME: ${MODEL_NAME:-gpt-5}
+    volumes:
+      - .:/app
+    working_dir: /app
+    entrypoint: ["python", "-m", "src.main"]
