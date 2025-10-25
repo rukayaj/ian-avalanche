@@ -1,123 +1,71 @@
 Overview
+========
 
-This repo contains a Dockerized pipeline to extract hourly forecast data from the three graphs on sportscotland/SAIS avalanche forecast PDFs using a multimodal LLM. It:
-- Renders PDF pages to images (PyMuPDF)
-- Default: LLM-based region detection (robust to layout shifts). Local detection tooling remains available for auditing only.
-- Crops each graph and extracts structured series via JSON Schema outputs
-- Flattens results into a CSV compatible with the provided sample schema
+This project extracts hourly forecast series from sportscotland/SAIS avalanche PDFs using OpenAI's multimodal Responses + Batch APIs. The pipeline renders each PDF, locates the three area graphs (wind, precipitation, temperature), crops them, and asks the model for strict JSON output that is flattened into a CSV.
 
-What it extracts
 
-- Wind graph: hourly wind speed (mph), gust (mph), direction (compass)
-- Precip graph: hourly rain (mm), snow (cm), precip type (text) with 0 when no bar
-- Temperature graph: hourly air temp (degC, left axis), freezing level (m), wet bulb freezing level (m) from right axis
+Quick Start
+-----------
 
-Detection and CV
-
-- Region detection uses a vision LLM in default runs and Batch workflows. A local detection tool is included for audit/experiments only.
-- Data extraction is LLM-only with strict structured outputs. No numeric digitization (OpenCV) is used.
-
-Docker usage
-
-1) Build
-   docker build -t forecast-extractor .
-
-2) Run (mount current directory for PDFs and outputs)
-   docker run --rm \
-     -e OPENAI_API_KEY=$OPENAI_API_KEY \
-     -e MODEL_NAME=gpt-5 \
-     -v "$PWD":/app \
-     forecast-extractor \
-     --input "Scottish Avalanche Information Service-5.pdf" \
-     --out_csv out/extracted.csv
-
-Docker Compose
-
-1) Create a `.env.local` file with your key:
+1. Drop every PDF you want to process into the `in/` directory (nested folders are allowed).
+2. Create `.env.local` containing your API key and any overrides, e.g.:
+   ```
    OPENAI_API_KEY=sk-...
+   MODEL_NAME=gpt-5
+   ```
+3. Run the full pipeline:
+   ```
+   docker compose up --build
+   ```
+   The container renders PDFs, submits detection + extraction batches, polls for completion, and writes `out/batch_results.csv`. Intermediate JSONL artefacts are stored alongside the CSV in `out/`.
 
-2) Build:
-   docker compose build
 
-3) Run (process 3 PDFs, override model if needed):
-   docker compose run --rm -e MODEL_NAME=gpt-5 extractor \
-     --input "Scottish Avalanche Information Service-5.pdf" \
-            "sportscotland Avalanche Advice-1003.pdf" \
-            "sportscotland Avalanche Advice-1010.pdf" \
-     --out_csv out/extracted.csv
+Command-line Usage
+------------------
 
-Batch API (LLM detection + extraction)
+The main entry point is `python -m src.run_batch_pipeline`, which now auto-discovers PDFs. Useful flags:
 
-- Build a detection batch JSONL (LLM-based region detection):
-  docker run --rm \
-    -e MODEL_NAME=gpt-5 \
-    -v "$PWD":/app \
-    forecast-extractor \
-    -m src.build_batch -- --input "Scottish Avalanche Information Service-5.pdf" "sportscotland Avalanche Advice-1003.pdf" --out_jsonl out/batch_detect.jsonl --dpi 200 --max_page_px 900
+- `--input <PDF ...>`: explicit list of PDFs (skips directory scan).
+- `--input-dir DIR`: directory to search for PDFs (default `in/`). Created automatically if missing.
+- `--output-dir DIR`: base directory for JSONL/CSV artefacts (default `OUT_DIR` env or `out/`).
+- `--dpi`: render DPI (default 150).
+- `--max_page_px`, `--max_crop_px`: image down-scaling limits before requests.
+- `--poll_interval`: seconds between Batch status checks.
+- `--kinds wind,precipitation,temperature`: subset of graphs to extract.
 
-- Submit detection batch and download results via helper:
-  docker run --rm -e OPENAI_API_KEY=$OPENAI_API_KEY -v "$PWD":/app forecast-extractor \
-    -m src.batch_submit -- --jsonl out/batch_detect.jsonl --out_results out/batch_detect_results.jsonl
+All paths accept absolute or relative values and are resolved before use. Duplicate PDF basenames are rejected early to avoid ambiguous batch IDs.
 
-- Build extraction batch JSONL from detection results (per-graph requests using detected bboxes):
-  docker run --rm \
-    -e MODEL_NAME=gpt-5 \
-    -v "$PWD":/app \
-    forecast-extractor \
-    -m src.build_extract_batch_from_detection -- --detect_results out/batch_detect_results.jsonl --out_jsonl out/batch_extract.jsonl --dpi 200 --max_crop_px 720 --kinds wind,precipitation,temperature
 
-- Submit extraction batch and download results via helper:
-  docker run --rm -e OPENAI_API_KEY=$OPENAI_API_KEY -v "$PWD":/app forecast-extractor \
-    -m src.batch_submit -- --jsonl out/batch_extract.jsonl --out_results out/batch_extract_results.jsonl
+Supporting Tools
+----------------
 
-- Parse and merge downloaded batch results JSONLs into one CSV:
-  docker run --rm -v "$PWD":/app forecast-extractor -m src.parse_batch_results -- \
-    --input_jsonl out/batch_extract_results.jsonl \
-    --out_csv out/batch_results.csv
+The standalone helpers still exist but now lean on the shared pipeline utilities:
 
-One-shot end-to-end run
+- `src.build_batch`: build detection JSONL files (LLM-based region detection).
+- `src.build_extract_batch_from_detection`: generate extraction JSONL from previously downloaded detection results.
+- `src.build_extract_batch`: build extraction JSONL by running local heuristic detection.
+- `src.batch_submit`: submit any JSONL to the Batch API and download its results.
+- `src.parse_batch_results`: merge extraction results JSONL into a CSV (used automatically by the pipeline).
 
-- Single command to build detection JSONL, submit/poll, build extraction JSONL, submit/poll, and write CSV:
-  docker compose run --rm --entrypoint python extractor -m src.run_batch_pipeline \
-    --input "Scottish Avalanche Information Service-5.pdf" "sportscotland Avalanche Advice-1003.pdf" \
-    --dpi 150 --max_page_px 900 --max_crop_px 720 --poll_interval 20 \
-    --out_csv out/batch_results.csv
+All helpers accept `--input` / `--input-dir` where relevant and write outputs under `out/` by default.
 
-Note: You can still build per-graph batches directly from local detection if desired (faster pre-processing, but you requested LLM-based detection).
 
 Testing
+-------
 
-- Run unit tests in Docker:
-  docker run --rm -v "$PWD":/app forecast-extractor python -m pytest -q
+Dependencies require native libraries (PyMuPDF, Pillow). The easiest way to run the test-suite is inside the container:
 
-- Run thorough local-detection tests (slow, across all PDFs):
-  docker compose run --rm --entrypoint bash extractor -lc "pip install -r requirements.txt >/dev/null && export PYTHONPATH=/app && pytest -q -m slow"
-  - Tune with env vars: `MAX_PDFS=5 TEST_DPI=150 pytest -q -m slow`
+```
+docker compose run --rm extractor pytest -q
+```
 
-- Audit detection visually and via CSV:
-  docker run --rm -v "$PWD":/app forecast-extractor -m src.audit_local_detect -- --dpi 200 --out_dir out/local_detect_audit
+`tests/test_local_detect_bulk.py` is marked `slow`; enable it with `-m slow` and adjust workload using `MAX_PDFS` / `TEST_DPI`.
 
 
-Notes
+Implementation Notes
+--------------------
 
-- Requires OPENAI_API_KEY in the environment.
-- Produces page crops for debug in out/<pdf>_page_<n>/crop_<kind>.png
-- The pipeline uses LLM-driven region detection so it tolerates shifting layouts.
-- If a series cannot be read precisely, the model estimates using axes; we always enforce 24 entries. You can re-run to refine estimates.
- - Station altitude is intentionally ignored here and can be parsed later from textual content if needed.
-
-Error margin and QA
-
-- Expect small rounding/reading error from chart digitization (usually within a few units). Gust ≥ speed is checked implicitly by the model; visually verify if needed using saved crops.
-- We validate schema (24 entries, units) and will fail-fast if malformed; adjust prompts if a particular document varies.
-
-CLI Options
-
-- --input: list of PDF files (default: all PDFs in CWD)
-- --out_csv: output CSV path (default: out/extracted.csv)
-- --model: OpenAI model name (default from MODEL_NAME env)
-- --out_dir: directory for debug crops (default: out)
-
-Extending
-
-- If certain graphs prove hard for the LLM, add a computer-vision fallback for that graph (e.g., line/bar digitization with OpenCV) and use the LLM only for axes/labels.
+- Detection + extraction requests are validated via Pydantic-generated JSON Schema to keep Batch outputs consistent.
+- Detection results are correlated back to PDFs using the filename embedded in each request `custom_id`; the runner refuses duplicates to keep this reliable.
+- Intermediate artefacts are written with deterministic filenames so interrupted runs can be resumed or inspected.
+- Local detection tooling remains available for audits and regression testing but the default workflow now uses the cloud model end-to-end.

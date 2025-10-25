@@ -29,6 +29,6 @@ ENV PYTHONUNBUFFERED=1 \
     MODEL_NAME=gpt-5 \
     SERVICE_TIER=priority
 
-RUN mkdir -p /app/out
+RUN mkdir -p /app/in /app/out
 
-ENTRYPOINT ["python", "-m", "src.main"]
+ENTRYPOINT ["python", "-m", "src.run_batch_pipeline"]

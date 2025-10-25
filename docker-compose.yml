@@ -8,4 +8,4 @@ services:
     volumes:
       - .:/app
     working_dir: /app
-    entrypoint: ["python", "-m", "src.main"]
+    entrypoint: ["python", "-m", "src.run_batch_pipeline"]

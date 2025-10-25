@@ -8,7 +8,10 @@ from src.local_detect import detect_graphs_on_page_local
 
 
 def test_local_detect_returns_three_graphs_for_page_two():
-    pdf = next(Path('.').glob('Scottish Avalanche Information Service-5.pdf'))
+    pdf_dir = Path("in") if Path("in").is_dir() else Path(".")
+    pdf = next(pdf_dir.rglob("Scottish Avalanche Information Service-5.pdf"), None)
+    if pdf is None:
+        pytest.skip("Scottish Avalanche Information Service-5.pdf not available")
     pages = render_pdf_to_images(str(pdf), dpi=150)
     img = pages[1]  # page 2 (0-based index)
     out = detect_graphs_on_page_local(img)

@@ -12,8 +12,11 @@ def test_local_detect_all_pdfs_middle_pages():
     max_pdfs = int(os.getenv("MAX_PDFS", "999"))
     dpi = int(os.getenv("TEST_DPI", "150"))
 
-    pdfs = list(Path('.').glob('*.pdf'))[:max_pdfs]
-    assert pdfs, "No PDFs found for testing"
+    pdf_root = Path(os.getenv("PDF_DIR", "in"))
+    if not pdf_root.exists():
+        pdf_root = Path(".")
+    pdfs = list(pdf_root.rglob("*.pdf"))[:max_pdfs]
+    assert pdfs, f"No PDFs found for testing in {pdf_root}"
     total_checked = 0
     total_ok = 0
     for pdf in pdfs:
@@ -42,4 +45,3 @@ def test_local_detect_all_pdfs_middle_pages():
                 total_ok += 1
     # We expect strong coverage; allow occasional misses
     assert total_ok / max(1, total_checked) > 0.8, f"Local detection success ratio too low: {total_ok}/{total_checked}"
-
