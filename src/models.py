@@ -14,10 +14,10 @@ class RegionDetection(BaseModel):
 
 
 class WindHour(BaseModel):
-    hour_label: str
-    hour_index: int
-    wind_speed_mph: float
-    wind_gust_mph: float
+    hour_label: str = Field(pattern=r"^(18|19|2[0-3]|0[0-9]|1[0-7])$")
+    hour_index: int = Field(ge=0, le=23)
+    wind_speed_mph: float = Field(ge=0, le=150)
+    wind_gust_mph: float = Field(ge=0, le=200)
     wind_direction: Literal[
         "N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"
     ]
@@ -36,11 +36,14 @@ class WindSeries(BaseModel):
 
 
 class PrecipHour(BaseModel):
-    hour_label: str
-    hour_index: int
-    rain_mm: float
-    snow_cm: float
-    precip_type: str
+    hour_label: str = Field(pattern=r"^(18|19|2[0-3]|0[0-9]|1[0-7])$")
+    hour_index: int = Field(ge=0, le=23)
+    rain_mm: float = Field(ge=0, le=100)
+    snow_cm: float = Field(ge=0, le=100)
+    precip_type: Literal[
+        "None","No Precip","Dry","Rain","Snow","Sleet","Hail","Freezing Rain","Graupel","Mixed",
+        "Rain/Snow","Snow Showers","Rain Showers","Drizzle","Showers","Thunderstorm"
+    ]
 
 
 class PrecipSeries(BaseModel):
@@ -56,11 +59,11 @@ class PrecipSeries(BaseModel):
 
 
 class TempHour(BaseModel):
-    hour_label: str
-    hour_index: int
-    air_temp_c: float
-    freezing_level_m: float
-    wet_bulb_freezing_level_m: float
+    hour_label: str = Field(pattern=r"^(18|19|2[0-3]|0[0-9]|1[0-7])$")
+    hour_index: int = Field(ge=0, le=23)
+    air_temp_c: float = Field(ge=-50, le=20)
+    freezing_level_m: float = Field(ge=0, le=6000)
+    wet_bulb_freezing_level_m: float = Field(ge=0, le=6000)
 
 
 class TempSeries(BaseModel):
@@ -74,3 +77,9 @@ class TempSeries(BaseModel):
             raise ValueError("Expected 24 hourly entries for temperature")
         return v
 
+
+class CombinedSeries(BaseModel):
+    location: Optional[str] = None
+    wind: WindSeries
+    precipitation: PrecipSeries
+    temperature: TempSeries

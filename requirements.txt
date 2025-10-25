@@ -6,3 +6,4 @@ pandas>=2.2.2
 tqdm>=4.66.5
 python-dotenv>=1.0.1
 jsonschema>=4.23.0
+pytest>=8.3.3

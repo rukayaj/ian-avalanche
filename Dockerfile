@@ -26,7 +26,8 @@ COPY prompts /app/prompts
 ENV PYTHONUNBUFFERED=1 \
     OPENAI_API_KEY="" \
     OUT_DIR=/app/out \
-    MODEL_NAME=gpt-5
+    MODEL_NAME=gpt-5 \
+    SERVICE_TIER=priority
 
 RUN mkdir -p /app/out
 

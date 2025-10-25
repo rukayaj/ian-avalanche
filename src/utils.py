@@ -1,13 +1,22 @@
 import base64
 from io import BytesIO
-from typing import Tuple
+from typing import Tuple, Optional
 
 from PIL import Image
 
 
-def pil_to_data_url(img: Image.Image, format: str = "PNG") -> str:
+def pil_to_data_url(img: Image.Image, format: str = "PNG", quality: Optional[int] = None) -> str:
     buf = BytesIO()
-    img.save(buf, format=format)
+    save_kwargs = {}
+    if format.upper() == "JPEG":
+        # Ensure no alpha for JPEG
+        if img.mode in ("RGBA", "LA"):
+            img = img.convert("RGB")
+        if quality is not None:
+            save_kwargs["quality"] = max(1, min(quality, 95))
+        save_kwargs["optimize"] = True
+        save_kwargs["progressive"] = True
+    img.save(buf, format=format, **save_kwargs)
     b64 = base64.b64encode(buf.getvalue()).decode("ascii")
     return f"data:image/{format.lower()};base64,{b64}"
 
@@ -34,3 +43,16 @@ def ensure_rgb(img: Image.Image) -> Image.Image:
         return img.convert("RGB")
     return img
 
+
+def resize_max_side(img: Image.Image, max_side: int) -> Image.Image:
+    """Resize image so that the larger side is <= max_side, preserving aspect ratio."""
+    w, h = img.size
+    if max(w, h) <= max_side:
+        return img
+    if w >= h:
+        new_w = max_side
+        new_h = int(h * (max_side / w))
+    else:
+        new_h = max_side
+        new_w = int(w * (max_side / h))
+    return img.resize((new_w, new_h), Image.LANCZOS)
