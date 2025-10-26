@@ -18,8 +18,8 @@ def test_build_detect_regions_request_shape():
     assert req['url'] == '/v1/responses'
     body = req['body']
     assert body['model'] == 'gpt-5'
-    assert body['response_format']['type'] == 'json_schema'
-    assert 'schema' in body['response_format']['json_schema']
+    assert body['text']['format']['type'] == 'json_schema'
+    assert 'schema' in body['text']['format']
     # One text + one image in content
     content = body['input'][0]['content']
     assert content[0]['type'] == 'input_text'
@@ -37,7 +37,7 @@ def test_build_extract_all_request_shape():
     assert req['method'] == 'POST'
     body = req['body']
     assert body['model'] == 'gpt-5'
-    assert body['response_format']['json_schema']['name'] == 'combined_series_schema'
+    assert body['text']['format']['name'] == 'combined_series_schema'
     content = body['input'][0]['content']
     # 1 text + 3 images
     assert len(content) == 4
@@ -50,8 +50,8 @@ def test_build_extract_all_request_shape():
 def test_build_extract_individual_requests_shape():
     crop = Image.new('RGB', (320, 220), (250, 250, 250))
     r1 = build_extract_wind_request('gpt-5', crop)
-    assert r1['url'] == '/v1/responses' and r1['body']['response_format']['json_schema']['name'] == 'wind_series_schema'
+    assert r1['url'] == '/v1/responses' and r1['body']['text']['format']['name'] == 'wind_series_schema'
     r2 = build_extract_precip_request('gpt-5', crop)
-    assert r2['body']['response_format']['json_schema']['name'] == 'precip_series_schema'
+    assert r2['body']['text']['format']['name'] == 'precip_series_schema'
     r3 = build_extract_temperature_request('gpt-5', crop)
-    assert r3['body']['response_format']['json_schema']['name'] == 'temp_series_schema'
+    assert r3['body']['text']['format']['name'] == 'temp_series_schema'

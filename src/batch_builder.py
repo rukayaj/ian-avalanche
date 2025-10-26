@@ -54,8 +54,8 @@ def _json_schema_response_format(name: str, model: type[BaseModel]) -> Dict:
                 defs[k] = _strictify(v)
     strict = _strictify(base)
     return {
-        "type": "json_schema",
-        "json_schema": {
+        "format": {
+            "type": "json_schema",
             "name": name,
             "schema": strict,
             "strict": True,
@@ -86,7 +86,7 @@ def build_detect_regions_request(model_name: str, page_img, prompt: str | None =
         ],
         "max_output_tokens": 8000,
         "reasoning": {"effort": "low"},
-        "response_format": _json_schema_response_format("graph_regions_schema", RegionDetection),
+        "text": _json_schema_response_format("graph_regions_schema", RegionDetection),
     }
     return {
         "custom_id": f"detect_regions_{uuid.uuid4().hex}",
@@ -120,7 +120,7 @@ def build_extract_all_request(model_name: str, crops_by_kind: Dict[str, any], pr
         "input": [{"role": "user", "content": content}],
         "max_output_tokens": 18000,
         "reasoning": {"effort": "low"},
-        "response_format": _json_schema_response_format("combined_series_schema", CombinedSeries),
+        "text": _json_schema_response_format("combined_series_schema", CombinedSeries),
     }
     return {
         "custom_id": f"extract_all_{uuid.uuid4().hex}",
@@ -151,7 +151,7 @@ def build_extract_wind_request(model_name: str, crop_img, prompt: str | None = N
         "input": [{"role": "user", "content": content}],
         "max_output_tokens": 16000,
         "reasoning": {"effort": "low"},
-        "response_format": _json_schema_response_format("wind_series_schema", WindSeries),
+        "text": _json_schema_response_format("wind_series_schema", WindSeries),
     }
     return {
         "custom_id": f"extract_wind_{uuid.uuid4().hex}",
@@ -182,7 +182,7 @@ def build_extract_precip_request(model_name: str, crop_img, prompt: str | None =
         "input": [{"role": "user", "content": content}],
         "max_output_tokens": 16000,
         "reasoning": {"effort": "low"},
-        "response_format": _json_schema_response_format("precip_series_schema", PrecipSeries),
+        "text": _json_schema_response_format("precip_series_schema", PrecipSeries),
     }
     return {
         "custom_id": f"extract_precip_{uuid.uuid4().hex}",
@@ -212,7 +212,7 @@ def build_extract_temperature_request(model_name: str, crop_img, prompt: str | N
         "input": [{"role": "user", "content": content}],
         "max_output_tokens": 16000,
         "reasoning": {"effort": "low"},
-        "response_format": _json_schema_response_format("temp_series_schema", TempSeries),
+        "text": _json_schema_response_format("temp_series_schema", TempSeries),
     }
     return {
         "custom_id": f"extract_temp_{uuid.uuid4().hex}",

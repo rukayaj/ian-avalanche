@@ -1,4 +1,5 @@
 import argparse
+import os
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -45,6 +46,16 @@ def discover_pdfs(explicit: Sequence[str] | None, input_dir: Path) -> List[Path]
         if not candidates and search_dir != Path("."):
             candidates = sorted(Path(".").glob("*.pdf"))
         pdfs = candidates
+    disabled_dir = (input_dir / "disabled").resolve()
+
+    def is_disabled(path: Path) -> bool:
+        try:
+            path.resolve().relative_to(disabled_dir)
+            return True
+        except ValueError:
+            return False
+
+    pdfs = [p for p in pdfs if not is_disabled(p)]
     pdfs = [p for p in pdfs if p.suffix.lower() == ".pdf" and p.is_file()]
     if not pdfs:
         target = input_dir if not explicit else Path(".")
