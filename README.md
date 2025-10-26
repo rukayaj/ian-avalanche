@@ -19,11 +19,12 @@ Quick Start
    ```
    The container renders PDFs, submits detection + extraction batches, polls for completion, and writes `out/batch_results.csv`. Intermediate JSONL artefacts are stored alongside the CSV in `out/`.
 
+   All development is done in docker.
 
 Command-line Usage
 ------------------
 
-The main entry point is `python -m src.run_batch_pipeline`, which now auto-discovers PDFs. Useful flags:
+All development is done in docker. The main entry point is `python -m src.run_batch_pipeline`, which now auto-discovers PDFs. Useful flags:
 
 - `--input <PDF ...>`: explicit list of PDFs (skips directory scan).
 - `--input-dir DIR`: directory to search for PDFs (default `in/`). Created automatically if missing.
