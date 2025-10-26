@@ -67,7 +67,9 @@ def build_detect_regions_request(model_name: str, page_img, prompt: str | None =
     prompt = prompt or (
         "You are locating three graphs on a forecast page. Return normalized bounding boxes [x,y,w,h] in 0..1 "
         "for each graph and classify each as wind, precipitation, or temperature. Mark page_type as 'area_graphs' "
-        "only if you see three 24-hour graphs 18→17. Include location if obvious from titles."
+        "only if you see three 24-hour graphs 18→17. When you provide the location, strip any leading graph descriptor "
+        "(e.g., remove 'Wind - ' or 'Weather and Precipitation - ') and return only the place name portion such as "
+        "'Ben Nevis (1345 metres)'. Ignore area footer text at the bottom of the page."
     )
     page = ensure_rgb(page_img)
     page = resize_max_side(page, max_side)
@@ -111,9 +113,12 @@ def build_extract_all_request(model_name: str, crops_by_kind: Dict[str, any], pr
     content[0]["text"] += (
         "\nUse the same location string copied exactly from the shared graph title (empty string if unreadable). "
         "Ensure every series contains 24 entries for hour_index 0..23 (hours 18→17). "
-        "For wind, output integer mph speeds/gusts aligned with the axis ticks and directions using only the 16-point compass list. "
-        "For precipitation, report rain_mm as whole millimetres, snow_cm with one decimal, precip_type exactly as printed above each hour, and 0 values when no bar is present. "
-        "For temperature, report air_temp_c to one decimal and altitude values to the nearest 10 metres following the right-hand axis."
+        "Before proceeding past 18:00, read the first hour directly off the grid for each series so the scale is calibrated."
+        "\nWind: return wind_speed_mph and wind_gust_mph as integer mph values aligned with the axis ticks, and wind_direction using only the 16-point compass list provided. "
+        "Check that gusts stay ≥ speeds for each hour."
+        "\nPrecipitation: rain_mm should be read to the nearest 0.1 mm (0.0 when no blue bar), snow_cm to one decimal place. Treat blue and white bars as separate values for the same hour—do not add them together. "
+        "Return precip_type text exactly as printed above each hour."
+        "\nTemperature: air_temp_c to one decimal place from the left axis, freezing_level_m and wet_bulb_freezing_level_m rounded to the nearest 10 m from the right axis. Ignore static summit/elevation labels printed on the chart."
     )
     body = {
         "model": model_name,
@@ -136,6 +141,7 @@ def build_extract_wind_request(model_name: str, crop_img, prompt: str | None = N
         "Hours span 18→17, so produce exactly 24 entries with hour_label and hour_index 0..23 in order. "
         "Use only these compass directions: N, NNE, NE, ENE, E, ESE, SE, SSE, S, SSW, SW, WSW, W, WNW, NW, NNW. "
         "Report wind_speed_mph and wind_gust_mph as integer mph values that line up with the axis ticks—never treat above-axis lines as near zero. "
+        "Before filling the full series, read the 18:00 hour directly from the axis grid to confirm the scale and keep gusts ≥ speeds throughout. "
         "If values are unclear, estimate from neighbouring points and the gridlines. "
         "Include 'location' exactly as the graph title text (empty string only if unreadable); do not use page footers or add qualifiers."
     )
@@ -165,9 +171,11 @@ def build_extract_precip_request(model_name: str, crop_img, prompt: str | None =
     prompt = prompt or (
         "Extract 24 hourly precipitation series: rain (blue bars, mm), snow (white bars, cm), precip_type (text). "
         "Hours cover 18→17, so output exactly 24 ordered entries with hour_index 0..23. "
-        "If no bar appears, set rain_mm and snow_cm to 0 for that hour. "
-        "Report rain_mm as whole millimetres and snow_cm with one decimal place, keeping values non-negative and aligned with the axis scale. "
+        "If no bar appears, set rain_mm and snow_cm to 0.0 for that hour. "
+        "Report rain_mm to the nearest 0.1 mm (0.0 when the blue bar is absent) and snow_cm with one decimal place, keeping values non-negative and aligned with the axis scale. "
+        "Treat blue and white bars as separate values for the same hour—do not add or average them. "
         "Return precip_type exactly as printed above each hour without normalisation. "
+        "Double-check the 18:00 bar against the axis labels to confirm the scale before extracting the rest of the series. "
         "Include 'location' exactly as the graph title text (empty string only if unreadable); avoid page footers and qualifiers."
     )
     im = ensure_rgb(crop_img)
@@ -196,7 +204,9 @@ def build_extract_temperature_request(model_name: str, crop_img, prompt: str | N
     prompt = prompt or (
         "Extract 24 hourly temperature/altitude series: air_temp_c (blue, left axis °C), freezing_level_m (pink, right axis m), "
         "wet_bulb_freezing_level_m (yellow, right axis m). Hours span 18→17, so return exactly 24 ordered entries with hour_index 0..23. "
-        "Report air_temp_c to one decimal place, and altitude values to the nearest 10 metres following the axis markings. "
+        "Report air_temp_c to one decimal place from the left °C axis, and altitude values to the nearest 10 metres using the right-hand axis gridlines. "
+        "Ignore static elevation labels (e.g., summit heights) that are printed on the chart background. "
+        "Before moving past 18:00, confirm each coloured line aligns with its respective axis scale so later readings stay calibrated. "
         "If a point is unclear, estimate from the surrounding curve and gridlines instead of dropping the hour. "
         "Include 'location' exactly as the graph title text (empty string only if unreadable); do not use page footers or add qualifiers."
     )

@@ -5,6 +5,7 @@ services:
       - .env.local
     environment:
       MODEL_NAME: ${MODEL_NAME:-gpt-5}
+      EXTRACT_REPEATS: ${EXTRACT_REPEATS:-3}
     volumes:
       - .:/app
     working_dir: /app
