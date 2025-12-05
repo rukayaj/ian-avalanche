@@ -114,10 +114,10 @@ def build_extract_all_request(model_name: str, crops_by_kind: Dict[str, any], pr
         "\nUse the same location string copied exactly from the shared graph title (empty string if unreadable). "
         "Ensure every series contains 24 entries for hour_index 0..23 (hours 18→17). "
         "Before proceeding past 18:00, read the first hour directly off the grid for each series so the scale is calibrated."
-        "\nWind: return wind_speed_mph and wind_gust_mph as integer mph values aligned with the axis ticks, and wind_direction using only the 16-point compass list provided. "
+        "\nWind: return wind_speed_mph and wind_gust_mph as integer mph values aligned with the axis ticks, and wind_direction using only the 16-point compass list provided. Direction labels are printed at a 45-degree angle with the start above each hour tick—read each one. "
         "Check that gusts stay ≥ speeds for each hour."
         "\nPrecipitation: rain_mm should be read to the nearest 0.1 mm (0.0 when no blue bar), snow_cm to one decimal place. Treat blue and white bars as separate values for the same hour—do not add them together. "
-        "Return precip_type text exactly as printed above each hour."
+        "Return precip_type text exactly as printed above each hour; labels are at 45 degrees above the hour ticks. Prefer these values when they match the chart: Clear, Cloudy, Rain, Fog, Mist, Partly cloudy, Sunny, Snow, Snow showers, Sleet, Drizzle, Overcast."
         "\nTemperature: air_temp_c to one decimal place from the left axis, freezing_level_m and wet_bulb_freezing_level_m rounded to the nearest 10 m from the right axis. Ignore static summit/elevation labels printed on the chart."
     )
     body = {
@@ -138,6 +138,7 @@ def build_extract_all_request(model_name: str, crops_by_kind: Dict[str, any], pr
 def build_extract_wind_request(model_name: str, crop_img, prompt: str | None = None, max_side: int = 900) -> Dict:
     prompt = prompt or (
         "Extract 24 hourly wind series: speed (blue, mph), gust (pink, mph), direction (text). "
+        "Direction labels are printed at a 45-degree angle with the start of the word directly above each hour tick—read each one individually. "
         "Hours span 18→17, so produce exactly 24 entries with hour_label and hour_index 0..23 in order. "
         "Use only these compass directions: N, NNE, NE, ENE, E, ESE, SE, SSE, S, SSW, SW, WSW, W, WNW, NW, NNW. "
         "Report wind_speed_mph and wind_gust_mph as integer mph values that line up with the axis ticks—never treat above-axis lines as near zero. "
@@ -170,11 +171,12 @@ def build_extract_wind_request(model_name: str, crop_img, prompt: str | None = N
 def build_extract_precip_request(model_name: str, crop_img, prompt: str | None = None, max_side: int = 900) -> Dict:
     prompt = prompt or (
         "Extract 24 hourly precipitation series: rain (blue bars, mm), snow (white bars, cm), precip_type (text). "
+        "Precipitation labels are printed at a 45-degree angle with the start of the word directly above each hour tick—read them there. "
         "Hours cover 18→17, so output exactly 24 ordered entries with hour_index 0..23. "
         "If no bar appears, set rain_mm and snow_cm to 0.0 for that hour. "
         "Report rain_mm to the nearest 0.1 mm (0.0 when the blue bar is absent) and snow_cm with one decimal place, keeping values non-negative and aligned with the axis scale. "
         "Treat blue and white bars as separate values for the same hour—do not add or average them. "
-        "Return precip_type exactly as printed above each hour without normalisation. "
+        "Return precip_type exactly as printed above each hour without normalisation; when it matches the chart, prefer one of: Clear, Cloudy, Rain, Fog, Mist, Partly cloudy, Sunny, Snow, Snow showers, Sleet, Drizzle, Overcast. "
         "Double-check the 18:00 bar against the axis labels to confirm the scale before extracting the rest of the series. "
         "Include 'location' exactly as the graph title text (empty string only if unreadable); avoid page footers and qualifiers."
     )

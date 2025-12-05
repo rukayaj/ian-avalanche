@@ -1,8 +1,9 @@
 FROM python:3.11-slim
 
-# System libraries required for Pillow, PyMuPDF, and pandas wheels
+# System libraries required for pdftotext, Pillow, PyMuPDF, and pandas wheels
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     build-essential \
+    poppler-utils \
     libjpeg62-turbo \
     libjpeg62-turbo-dev \
     zlib1g \
@@ -41,4 +42,4 @@ ENV PYTHONUNBUFFERED=1 \
 
 RUN mkdir -p /app/in /app/out
 
-ENTRYPOINT ["python", "-m", "src.run_batch_pipeline"]
+ENTRYPOINT ["python", "-m", "src.local_pdf_pipeline"]

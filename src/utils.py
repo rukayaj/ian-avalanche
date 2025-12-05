@@ -38,6 +38,32 @@ def crop_normalized_box(img: Image.Image, box: Tuple[float, float, float, float]
     return img.crop((left, top, right, bottom))
 
 
+def crop_strip_top(img: Image.Image, frac: float) -> Image.Image:
+    """
+    Crop the top strip of an image by a height fraction (0<frac<=1).
+    Useful for isolating angled text bands above charts.
+    """
+    W, H = img.size
+    h = max(1, int(round(H * frac)))
+    return img.crop((0, 0, W, h))
+
+
+def enhance_text_strip(img: Image.Image, target_width: int = 1600, threshold: int = 185) -> Image.Image:
+    """
+    Upsample and binarize a text strip to boost OCR accuracy.
+    - Resize to target_width (maintain aspect ratio) with Lanczos.
+    - Convert to grayscale and apply a simple threshold to reduce background noise.
+    """
+    w, h = img.size
+    if w < target_width:
+        scale = target_width / float(w)
+        img = img.resize((target_width, int(round(h * scale))), Image.LANCZOS)
+    gray = img.convert("L")
+    if threshold:
+        gray = gray.point(lambda p: 255 if p > threshold else 0)
+    return gray
+
+
 def ensure_rgb(img: Image.Image) -> Image.Image:
     if img.mode != "RGB":
         return img.convert("RGB")

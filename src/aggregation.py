@@ -11,7 +11,7 @@ LOCATION_PREFIXES = (
     "Weather & Precipitation - ",
     "Temperature - ",
 )
-LOCATION_PLACEHOLDER_VALUES = {"", "unknown", "n/a", "na", "none"}
+LOCATION_PLACEHOLDER_VALUES = {"", "unknown", "unspecified", "n/a", "na", "none"}
 PRECIP_TYPE_ALIASES = {
     "None": "No Precip",
     "none": "No Precip",

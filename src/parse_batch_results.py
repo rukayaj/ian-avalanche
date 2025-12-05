@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import pandas as pd
 
+from .aggregation import normalize_location_string
 from .extractors import series_to_rows
 
 
@@ -119,13 +120,16 @@ def parse_jsonl_file(path: str, detection_locations: Optional[Dict[Tuple[str, in
             detection_location = ""
             if detection_locations:
                 detection_location = detection_locations.get((file_name, page_index + 1), "") or ""
-            location = parsed.get("location") or detection_location
+            # Treat placeholder/unknown locations as empty so we can fall back to detection.
+            location = normalize_location_string(parsed.get("location"))
+            if not location:
+                location = detection_location
             kind = meta.get("kind") or ""
             # Support both per-graph and combined outputs
             if kind == "combined" and all(k in (parsed or {}) for k in ("wind", "precipitation", "temperature")):
                 for sub_kind in ("wind", "precipitation", "temperature"):
                     sub_payload = parsed.get(sub_kind) or {}
-                    loc = (
+                    loc = normalize_location_string(
                         location
                         or sub_payload.get("location")
                         or detection_location

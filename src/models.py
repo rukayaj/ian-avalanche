@@ -41,9 +41,87 @@ class PrecipHour(BaseModel):
     rain_mm: float = Field(ge=0, le=100)
     snow_cm: float = Field(ge=0, le=100)
     precip_type: Literal[
-        "None","No Precip","Dry","Rain","Snow","Sleet","Hail","Freezing Rain","Graupel","Mixed",
-        "Rain/Snow","Snow Showers","Rain Showers","Drizzle","Showers","Thunderstorm"
+        "None",
+        "No Precip",
+        "Dry",
+        "Clear",
+        "Sunny",
+        "Partly cloudy",
+        "Cloudy",
+        "Overcast",
+        "Mist",
+        "Fog",
+        "Rain",
+        "Rain Showers",
+        "Drizzle",
+        "Snow",
+        "Snow Showers",
+        "Snow showers",
+        "Sleet",
+        "Hail",
+        "Freezing Rain",
+        "Graupel",
+        "Mixed",
+        "Rain/Snow",
+        "Showers",
+        "Thunderstorm",
     ]
+
+
+class DirectionStrip(BaseModel):
+    directions: List[
+        Literal[
+            "N",
+            "NNE",
+            "NE",
+            "ENE",
+            "E",
+            "ESE",
+            "SE",
+            "SSE",
+            "S",
+            "SSW",
+            "SW",
+            "WSW",
+            "W",
+            "WNW",
+            "NW",
+            "NNW",
+        ]
+    ]
+
+    @field_validator("directions")
+    @classmethod
+    def _validate_24(cls, v: List[str]):
+        if len(v) != 24:
+            raise ValueError("Expected 24 direction labels (hours 18→17)")
+        return v
+
+
+class PrecipTypeStrip(BaseModel):
+    precip_types: List[
+        Literal[
+            "Clear",
+            "Cloudy",
+            "Rain",
+            "Fog",
+            "Mist",
+            "Partly cloudy",
+            "Sunny",
+            "Snow",
+            "Snow showers",
+            "Sleet",
+            "Drizzle",
+            "Overcast",
+        ]
+    ]
+
+    @field_validator("precip_types")
+    @classmethod
+    def _validate_24(cls, v: List[str]):
+        if len(v) != 24:
+            raise ValueError("Expected 24 precip type labels (hours 18→17)")
+        return v
 
 
 class PrecipSeries(BaseModel):

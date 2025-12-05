@@ -8,8 +8,11 @@ from pathlib import Path
 import copy
 from collections import Counter
 from typing import Dict, Iterable, List, Sequence, Any, Optional, Tuple, Set
+import re
+import subprocess
 
 from PIL import Image
+import fitz
 
 try:
     import pandas as pd
@@ -78,6 +81,98 @@ KIND_REPROMPT_RULES = {
         "- Calibrate on the 18:00 point for each line before completing the series."
     ),
 }
+
+
+def extract_page9_rows(pdf_path: Path) -> List[Dict[str, Any]]:
+    """Parse page 9 table for cumulative rain/snow and forecast start date."""
+    rows: List[Dict[str, Any]] = []
+    try:
+        doc = fitz.open(pdf_path)
+    except Exception:
+        return rows
+    try:
+        if doc.page_count < 9:
+            return rows
+    finally:
+        doc.close()
+
+    try:
+        result = subprocess.run(
+            ["pdftotext", "-layout", "-f", "9", "-l", "9", str(pdf_path), "-"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+    except Exception:
+        return rows
+
+    text = result.stdout.splitlines()
+    date_str = ""
+    for line in text:
+        m = re.search(r"1800 on (.+?) until", line)
+        if m:
+            date_str = m.group(1).strip()
+            break
+    if date_str:
+        rows.append(
+            {
+                "SourceFile": pdf_path.name,
+                "Page": 9,
+                "Location": "",
+                "Section": "Meta",
+                "Measurement": "ForecastWindowStart",
+                "MeasurementType": "Date",
+                "Units": "",
+                "ForecastWindowStartLocal": "",
+                "HourLabel": "",
+                "HourIndex": "",
+                "TimestampLocal": "",
+                "ValueNumeric": "",
+                "ValueText": date_str,
+                "Notes": "",
+            }
+        )
+
+    row_re = re.compile(r"\s*([A-Za-z' ]{3,})\s+([0-9]+\.?[0-9]*)\s+([0-9]+\.?[0-9]*)\s*$")
+    for line in text:
+        m = row_re.match(line)
+        if not m:
+            continue
+        site = m.group(1).strip()
+        snow_val = float(m.group(2))
+        rain_val = float(m.group(3))
+        base = {
+            "SourceFile": pdf_path.name,
+            "Page": 9,
+            "Location": site,
+            "Section": "Precip",
+            "ForecastWindowStartLocal": "",
+            "HourLabel": "",
+            "HourIndex": "",
+            "TimestampLocal": "",
+            "Notes": "",
+        }
+        rows.append(
+            {
+                **base,
+                "Measurement": "Accumulation",
+                "MeasurementType": "SnowTotal_cm",
+                "Units": "cm",
+                "ValueNumeric": snow_val,
+                "ValueText": "",
+            }
+        )
+        rows.append(
+            {
+                **base,
+                "Measurement": "Accumulation",
+                "MeasurementType": "RainTotal_mm",
+                "Units": "mm",
+                "ValueNumeric": rain_val,
+                "ValueText": "",
+            }
+        )
+    return rows
 
 
 @dataclass(frozen=True)
@@ -662,6 +757,15 @@ def run_pipeline(
         report["rerun"] = rerun_info
 
     final_rows = list(final_rows_map.values())
+
+    # Append page 9 accumulations and forecast start date (parsed directly from PDF)
+    for pdf_path in pdfs:
+        try:
+            extra_rows = extract_page9_rows(pdf_path)
+        except Exception:
+            extra_rows = []
+        final_rows.extend(extra_rows)
+
     final_df = pd.DataFrame(final_rows)
     if not final_df.empty:
         final_df = final_df.sort_values(

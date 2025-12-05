@@ -2,7 +2,8 @@ import os
 from typing import Any, Dict, List, Optional
 
 from openai import OpenAI
-from .models import RegionDetection, WindSeries, PrecipSeries, TempSeries, CombinedSeries
+from .models import RegionDetection, WindSeries, PrecipSeries, TempSeries, CombinedSeries, DirectionStrip, PrecipTypeStrip
+from .utils import pil_to_data_url
 
 
 class LLMClient:
@@ -23,14 +24,21 @@ class LLMClient:
             content.append({"type": "input_image", "image_url": url})
 
         # Use parse to get structured output validated to the given schema
-        resp = self.client.responses.parse(
-            model=self.model,
-            max_output_tokens=max_output_tokens,
-            input=[{"role": "user", "content": content}],
-            text_format=text_format,
-            reasoning={"effort": "low"},
-            service_tier=os.getenv("SERVICE_TIER", "priority"),
-        )
+        # Some models do not support the reasoning.effort parameter; include it only when allowed.
+        kwargs = {
+            "model": self.model,
+            "max_output_tokens": max_output_tokens,
+            "input": [{"role": "user", "content": content}],
+            "text_format": text_format,
+            "service_tier": os.getenv("SERVICE_TIER", "priority"),
+        }
+        try:
+            kwargs["reasoning"] = {"effort": "low"}
+            resp = self.client.responses.parse(**kwargs)
+        except Exception as exc:
+            # Retry without reasoning when the model rejects that parameter.
+            kwargs.pop("reasoning", None)
+            resp = self.client.responses.parse(**kwargs)
         # Parsed Pydantic model instance
         out = resp.output_parsed
         return out.model_dump() if out is not None else {}
@@ -51,9 +59,10 @@ class LLMClient:
     def extract_wind(self, crop_url: str, text_format=WindSeries, feedback: str = "") -> Dict[str, Any]:
         prompt = (
             "Extract 24 hourly wind series for this graph: speed (blue line, mph), gust (pink line, mph), "
-            "and wind direction text above each hour. Hours run from 18:00 to 17:00 next day; ensure all 24 hours appear with hour_index 0..23. "
+            "and wind direction text above each hour. The direction labels are printed at a 45-degree angle with the start of each label directly above the hour tick—read each one individually. "
+            "Hours run from 18:00 to 17:00 next day; ensure all 24 hours appear with hour_index 0..23. "
             "Return exactly 24 entries containing hour_label, hour_index, wind_speed_mph, wind_gust_mph, and wind_direction (use only these compass points: N, NNE, NE, ENE, E, ESE, SE, SSE, S, SSW, SW, WSW, W, WNW, NW, NNW). "
-            "Report wind_speed_mph and wind_gust_mph as integer mph values aligned with the axis ticks—never round them down to near-zero when the plotted line is clearly above the baseline. "
+            "Report wind_speed_mph and wind_gust_mph as integer mph values aligned with the mph axis ticks—read the gridlines to set the scale and avoid smoothing/rounding errors. "
             "Before filling the full series, read the 18:00 hour directly from the axis grid to confirm the scale and keep gusts greater than or equal to speeds. "
             "If a value cannot be read, estimate it from neighbouring points and the axis gridlines so the series remains smooth. "
             "Include 'location' exactly as the graph title text; do not use page footers or add qualifiers. If the title is unreadable, return an empty string.\n\n"
@@ -61,19 +70,40 @@ class LLMClient:
         )
         return self._call_schema(prompt, [crop_url], text_format, max_output_tokens=16_000)
 
+    def extract_direction_strip(self, crop_url: str, text_format=DirectionStrip, feedback: str = "") -> Dict[str, Any]:
+        prompt = (
+            "Read the wind-direction labels printed at a 45-degree angle above each hour tick. "
+            "Return exactly 24 direction strings in order for hours 18, 19, 20, 21, 22, 23, 00, 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16, 17. "
+            "Use only these compass values: N, NNE, NE, ENE, E, ESE, SE, SSE, S, SSW, SW, WSW, W, WNW, NW, NNW. "
+            "If any label is unreadable, use an empty string for that slot. Do not infer or repeat values unless they are printed."
+            + (f"\nConstraints/Corrections: {feedback}" if feedback else "")
+        )
+        return self._call_schema(prompt, [crop_url], text_format, max_output_tokens=4_000)
+
     def extract_precip(self, crop_url: str, text_format=PrecipSeries, feedback: str = "") -> Dict[str, Any]:
         prompt = (
             "Extract 24 hourly precipitation series for this graph: rain (blue bars, mm), snow (white bars, cm), "
-            "and precipitation type text above each hour. Hours run 18→17, so output must contain 24 ordered entries with hour_index 0..23. "
+            "and precipitation type text above each hour. The precip-type labels are printed at a 45-degree angle with the start of each word directly above the matching hour tick—OCR each label there. "
+            "Hours run 18→17, so output must contain 24 ordered entries with hour_index 0..23. "
             "If no bar is present for an hour, set the numeric value to 0.0. "
             "Report rain_mm to the nearest 0.1 mm (0.0 when the blue bar is absent) and snow_cm with one decimal place, keeping values non-negative and consistent with the axis ticks. "
             "Treat blue rainfall bars and white snowfall bars as separate values for the same hour—do not add them together. "
             "Before moving past 18:00, confirm the first hour aligns with the axis grid so subsequent readings stay calibrated. "
-            "Include the precipitation type text exactly as printed above each hour (do not normalise or translate it). "
+            "Precipitation type must be taken from the chart text and should match one of these when possible: Clear, Cloudy, Rain, Fog, Mist, Partly cloudy, Sunny, Snow, Snow showers, Sleet, Drizzle, Overcast. If unreadable, leave it empty rather than guessing. "
             "Include 'location' exactly as the graph title text; do not use page footers or add qualifiers. If the title is unreadable, return an empty string.\n\n"
             + (f"Constraints/Corrections: {feedback}" if feedback else "")
         )
         return self._call_schema(prompt, [crop_url], text_format, max_output_tokens=16_000)
+
+    def extract_precip_type_strip(self, crop_url: str, text_format=PrecipTypeStrip, feedback: str = "") -> Dict[str, Any]:
+        prompt = (
+            "Read the precipitation-type labels printed at a 45-degree angle above each hour tick. "
+            "Return exactly 24 precip types in order for hours 18, 19, 20, 21, 22, 23, 00, 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16, 17. "
+            "Use only these values: Clear, Cloudy, Rain, Fog, Mist, Partly cloudy, Sunny, Snow, Snow showers, Sleet, Drizzle, Overcast. "
+            "If any label is unreadable, use an empty string for that slot. Do not infer or repeat values unless they are printed."
+            + (f"\nConstraints/Corrections: {feedback}" if feedback else "")
+        )
+        return self._call_schema(prompt, [crop_url], text_format, max_output_tokens=4_000)
 
     def extract_temperature(self, crop_url: str, text_format=TempSeries, feedback: str = "") -> Dict[str, Any]:
         prompt = (
